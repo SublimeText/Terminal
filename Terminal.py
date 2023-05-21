@@ -63,7 +63,7 @@ def linux_terminal():
     if wm:
         # elementary OS: `/usr/lib/gnome-session/gnome-session-binary --session=pantheon`
         # Gnome: `gnome-session` or `gnome-session-binary`
-        # Linux Mint Cinnamon: `cinnamon-sessio cinnamon-session --session cinnamon
+        # Linux Mint Cinnamon: `cinnamon-sessio cinnamon-session --session cinnamon`
         if wm[0].startswith('gnome-session') or wm[0].startswith('cinnamon-sessio'):
             if 'pantheon' in wm[0]:
                 return 'pantheon-terminal'

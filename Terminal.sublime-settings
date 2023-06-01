@@ -12,5 +12,9 @@
 	// An environment variables changeset. Default environment variables used for the
 	// terminal are inherited from sublime. Use this mapping to overwrite/unset. Use
 	// null value to indicate that the environment variable should be unset.
-	"env": {}
+	"env": {},
+
+	// For the Mac Terminal.app only, allow reuse of the front-most window,
+	// instead of spawning a new window
+	"reuse_window": false
 }

@@ -110,7 +110,11 @@ class TerminalSelector():
                 default = os.environ['SYSTEMROOT'] + '\\System32\\cmd.exe'
 
         elif sys.platform == 'darwin':
-            default = os.path.join(package_dir, 'Terminal.sh')
+            script = 'Terminal.sh'
+            if get_setting('reuse_window', False):
+                script = 'TerminalReuse.sh'
+
+            default = os.path.join(package_dir, script)
             if not os.access(default, os.X_OK):
                 os.chmod(default, 0o755)
 

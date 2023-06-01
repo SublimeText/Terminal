@@ -162,7 +162,7 @@ class TerminalCommand():
 
         except (OSError) as exception:
             print(str(exception))
-            sublime.error_message('Terminal: The terminal ' + TerminalSelector.get() + ' was not found')
+            sublime.error_message('Terminal: The terminal ' + TerminalSelector.get(terminal) + ' was not found')
         except (Exception) as exception:
             sublime.error_message('Terminal: ' + str(exception))
 

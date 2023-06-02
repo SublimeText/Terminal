@@ -1,9 +1,6 @@
 #!/bin/bash
 
 CD_CMD="cd "\\\"$(pwd)\\\"" && clear"
-if echo "$SHELL" | grep -E "/fish$" &> /dev/null; then
-	CD_CMD="cd "\\\"$(pwd)\\\""; and clear"
-fi
 
 osascript<<END
 try

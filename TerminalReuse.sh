@@ -1,9 +1,6 @@
 #!/bin/bash
 
 CD_CMD="cd "\\\"$(pwd)\\\"""
-if echo "$SHELL" | grep -E "/fish$" &> /dev/null; then
-	CD_CMD="cd "\\\"$(pwd)\\\"""
-fi
 
 osascript<<END
 try

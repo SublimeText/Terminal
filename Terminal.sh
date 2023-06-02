@@ -11,6 +11,7 @@ try
 		if (count(processes whose name is "Terminal")) is 0 then
 			tell application "Terminal"
 				activate
+				set miniaturized of window 1 to false
 				do script "$CD_CMD" in window 1
 			end tell
 		else

@@ -31,5 +31,9 @@
     {
         "caption": "Terminal: Open in project folder",
         "command": "open_terminal_project_folder"
+    },
+    {
+        "caption": "Terminal: Switch to application",
+        "command": "switch_to_terminal"
     }
 ]

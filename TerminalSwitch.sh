@@ -19,7 +19,6 @@ try
 
 		tell application "Terminal"
 			set miniaturized of window 1 to false
-			do script "$CD_CMD" in window 1
 		end tell
 	end tell
 end try

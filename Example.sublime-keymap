@@ -1,0 +1,8 @@
+[
+	// open the terminal in the current directory
+	{ "keys": ["ctrl+shift+t"], "command": "terminal_open" },
+	// open the terminal in the project's top directory
+	{ "keys": ["ctrl+alt+t"], "command": "terminal_open_project_folder" },
+	// switch to the terminal
+	{ "keys": ["ctrl+shift+alt+t"], "command": "terminal_switch" }
+]

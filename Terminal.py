@@ -1,6 +1,8 @@
 import sublime
 import sublime_plugin
+import json
 import os
+import shutil
 import sys
 import subprocess
 
@@ -17,6 +19,11 @@ class NotFoundError(Exception):
 
 
 INSTALLED_DIR = __name__.split('.')[0]
+
+# Stacks of terminal window IDs opened from each Sublime window (Linux only).
+# SwitchToTerminalCommand activates the most recent live window for its opener,
+# falling back to older ones when a terminal is closed.
+_terminal_wid_stacks = {}
 
 
 def get_setting(key, default=None):
@@ -79,6 +86,174 @@ def linux_terminal():
 
     # nothing specific found, return a default
     return 'xterm'
+
+
+def _linux_window_backend():
+    if sys.platform != 'linux':
+        return None
+    if os.environ.get('HYPRLAND_INSTANCE_SIGNATURE') and shutil.which('hyprctl'):
+        return 'hyprland'
+    if shutil.which('xdotool'):
+        return 'xdotool'
+    return None
+
+
+def _has_linux_window_tool():
+    return _linux_window_backend() is not None
+
+
+def _get_active_wid():
+    backend = _linux_window_backend()
+    try:
+        if backend == 'hyprland':
+            out = subprocess.check_output(
+                ['hyprctl', 'activewindow', '-j'],
+                timeout=2, stderr=subprocess.DEVNULL
+            ).decode().strip()
+            return json.loads(out).get('address')
+        elif backend == 'xdotool':
+            return subprocess.check_output(
+                ['xdotool', 'getactivewindow'],
+                timeout=2, stderr=subprocess.DEVNULL
+            ).decode().strip()
+    except (Exception):
+        pass
+    return None
+
+
+def _find_wid_by_pid(pid):
+    backend = _linux_window_backend()
+    try:
+        if backend == 'hyprland':
+            for client in _hyprland_clients():
+                if client.get('pid') == pid:
+                    return client.get('address')
+        elif backend == 'xdotool':
+            result = subprocess.check_output(
+                ['xdotool', 'search', '--pid', str(pid)],
+                timeout=2, stderr=subprocess.DEVNULL
+            ).decode().strip()
+            if result:
+                return result.splitlines()[-1]
+    except (Exception):
+        pass
+    return None
+
+
+def _is_window_alive(wid):
+    backend = _linux_window_backend()
+    try:
+        if backend == 'hyprland':
+            return any(c.get('address') == wid for c in _hyprland_clients())
+        elif backend == 'xdotool':
+            subprocess.check_output(
+                ['xdotool', 'getwindowname', wid],
+                timeout=2, stderr=subprocess.DEVNULL)
+            return True
+    except (Exception):
+        pass
+    return False
+
+
+def _activate_window(wid):
+    backend = _linux_window_backend()
+    try:
+        if backend == 'hyprland':
+            subprocess.run(
+                ['hyprctl', 'dispatch', 'focuswindow', 'address:' + wid],
+                timeout=2, stderr=subprocess.DEVNULL)
+        elif backend == 'xdotool':
+            subprocess.run(
+                ['xdotool', 'windowactivate', wid],
+                timeout=2, stderr=subprocess.DEVNULL)
+    except (Exception):
+        pass
+
+
+def _activate_by_class(class_name):
+    backend = _linux_window_backend()
+    try:
+        if backend == 'hyprland':
+            subprocess.run(
+                ['hyprctl', 'dispatch', 'focuswindow', 'class:' + class_name],
+                timeout=2, stderr=subprocess.DEVNULL)
+        elif backend == 'xdotool':
+            subprocess.run([
+                'xdotool', 'search', '--class',
+                class_name, 'windowactivate',
+            ], timeout=2, stderr=subprocess.DEVNULL)
+    except (Exception):
+        pass
+
+
+def _hyprland_clients():
+    try:
+        out = subprocess.check_output(
+            ['hyprctl', 'clients', '-j'],
+            timeout=2, stderr=subprocess.DEVNULL
+        ).decode().strip()
+        return json.loads(out)
+    except (Exception):
+        return []
+
+
+def _hyprland_tag_window(tag, selector, add=True):
+    args = ['hyprctl', 'dispatch', 'tagwindow']
+    if not add:
+        # Without this, hyprctl parses "-tag" as a hyprctl option.
+        args.append('--')
+    args.extend([('+' if add else '-') + tag, selector])
+    subprocess.run(
+        args, timeout=2, stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL)
+
+
+def _remove_hyprland_tag(tag):
+    for client in _hyprland_clients():
+        if tag in client.get('tags', []):
+            _hyprland_tag_window(
+                tag, 'address:' + client.get('address'), add=False)
+
+
+def _hyprland_window_ids():
+    return set(
+        c.get('address') for c in _hyprland_clients() if c.get('address'))
+
+
+def _find_new_hyprland_wid(before_wids):
+    clients = [
+        c for c in _hyprland_clients()
+        if c.get('address') and c.get('address') not in before_wids
+    ]
+    if not clients:
+        return None
+
+    active_wid = _get_active_wid()
+    if active_wid in [c.get('address') for c in clients]:
+        return active_wid
+
+    clients.sort(key=lambda c: c.get('focusHistoryID', 999999))
+    return clients[0].get('address')
+
+
+def _sublime_opener_tag(window_id):
+    return 'sublime-opener-' + str(window_id)
+
+
+def _tag_sublime_window(window_id, wid):
+    """Tag a specific Sublime window for Hyprland focus switching."""
+    tag = _sublime_opener_tag(window_id)
+    if _linux_window_backend() == 'hyprland' and wid:
+        try:
+            # Keep the documented generic tag best-effort, but also add a
+            # window-specific tag for shells that receive it in their env.
+            _remove_hyprland_tag('sublime-opener')
+            _remove_hyprland_tag(tag)
+            _hyprland_tag_window('sublime-opener', 'address:' + wid)
+            _hyprland_tag_window(tag, 'address:' + wid)
+        except (Exception):
+            pass
+    return tag
 
 
 class TerminalSelector():
@@ -147,6 +322,7 @@ class TerminalCommand():
 
     def terminal_open(self, location, terminal, parameters):
         try:
+            window_id = self.window.id()
             for k, v in enumerate(parameters):
                 parameters[k] = v.replace('%CWD%', location)
             args = [TerminalSelector.get(terminal)]
@@ -161,8 +337,42 @@ class TerminalCommand():
                 else:
                     env[k] = env_setting[k]
 
+            # On Linux, set up bidirectional focus switching.
+            # Hyprland: tag Sublime's window so terminals can focus
+            # back via hyprctl's tag selector. Env vars don't survive
+            # single-instance terminals (e.g. Ghostty gtk-single-instance).
+            # X11: inject Sublime's window ID as env var for xdotool.
+            if _has_linux_window_tool():
+                sublime_wid = _get_active_wid()
+                if _linux_window_backend() == 'hyprland':
+                    env['SUBLIME_TERMINAL_OPENER_TAG'] = _tag_sublime_window(
+                        window_id, sublime_wid)
+                elif sublime_wid:
+                    env['SUBLIME_TERMINAL_OPENER_WID'] = sublime_wid
+
+            before_wids = set()
+            if _linux_window_backend() == 'hyprland':
+                before_wids = _hyprland_window_ids()
+
             # Run our process
-            subprocess.Popen(args, cwd=location, env=env)
+            proc = subprocess.Popen(args, cwd=location, env=env)
+
+            # On Linux, capture the new terminal's window ID after it
+            # appears and takes focus. Used by SwitchToTerminalCommand.
+            if _has_linux_window_tool():
+                def _capture_wid():
+                    try:
+                        wid = _find_wid_by_pid(proc.pid)
+                        if not wid and _linux_window_backend() == 'hyprland':
+                            wid = _find_new_hyprland_wid(before_wids)
+                        if not wid:
+                            wid = _get_active_wid()
+                        stack = _terminal_wid_stacks.setdefault(window_id, [])
+                        if wid and wid not in stack:
+                            stack.append(wid)
+                    except (Exception):
+                        pass
+                sublime.set_timeout(_capture_wid, 1500)
 
         except (OSError) as exception:
             print(str(exception))
@@ -217,9 +427,43 @@ class TerminalOpenProjectFolderCommand(sublime_plugin.WindowCommand, TerminalCom
 
 class TerminalSwitchCommand(sublime_plugin.WindowCommand, TerminalCommand):
     def is_visible(self):
-        # only have an applescript to do this
-        return sys.platform == 'darwin'
+        if sys.platform == 'darwin':
+            return True
+        return _has_linux_window_tool()
 
     def run(self, paths=[], parameters=None):
-        package_dir = os.path.join(sublime.packages_path(), INSTALLED_DIR)
-        subprocess.Popen(os.path.join(package_dir, 'TerminalSwitch.sh'))
+        if sys.platform == 'darwin':
+            package_dir = os.path.join(sublime.packages_path(), INSTALLED_DIR)
+            subprocess.run(os.path.join(package_dir, 'TerminalSwitch.sh'))
+        elif sys.platform == 'linux':
+            if not _has_linux_window_tool():
+                sublime.error_message(
+                    'Terminal: No supported window tool found.\n'
+                    'For X11, install xdotool:\n'
+                    '- Debian/Ubuntu/Mint: sudo apt install xdotool\n'
+                    '- Arch: sudo pacman -S xdotool\n'
+                    '- Fedora: sudo dnf install xdotool\n'
+                    'For Hyprland, hyprctl is detected automatically.\n'
+                    'Other Wayland compositors are not currently supported.')
+                return
+
+            activated = False
+
+            # Walk the stack from most recent, prune dead windows
+            stack = _terminal_wid_stacks.setdefault(self.window.id(), [])
+            while stack:
+                wid = stack[-1]
+                if _is_window_alive(wid):
+                    _activate_window(wid)
+                    activated = True
+                    break
+                else:
+                    stack.pop()
+
+            if not activated:
+                # Fallback: activate by window class
+                terminal_class = get_setting('terminal_class', '')
+                if not terminal_class:
+                    terminal = get_setting('terminal', '') or linux_terminal()
+                    terminal_class = os.path.basename(terminal)
+                _activate_by_class(terminal_class)

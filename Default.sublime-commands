@@ -33,7 +33,7 @@
         "command": "terminal_open_project_folder"
     },
     {
-        "caption": "Terminal: Switch to application",
+        "caption": "Terminal: Switch to terminal",
         "command": "terminal_switch"
     }
 ]

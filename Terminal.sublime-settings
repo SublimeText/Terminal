@@ -1,7 +1,7 @@
 {
 	// The command to execute for the terminal, leave blank for the OS default
 	// See https://github.com/wbond/sublime_terminal#examples for examples
-	"terminal": "",
+	"terminal": null,
 
 	// A list of default parameters to pass to the terminal, this can be
 	// overridden by passing the "parameters" key with a list value to the args
@@ -16,5 +16,12 @@
 
 	// For the Mac Terminal.app only, allow reuse of the front-most window,
 	// instead of spawning a new window
-	"reuse_window": false
+	"reuse_window": false,
+
+	// The WM_CLASS of the terminal, used by "Switch to Terminal" on Linux.
+	// If not set, derived from the "terminal" setting. Override this if your
+	// terminal's WM_CLASS differs from its executable name (e.g. gnome-terminal
+	// uses "gnome-terminal-server").
+	// Find yours with: xdotool getactivewindow getwindowclassname
+	"terminal_class": null
 }

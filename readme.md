@@ -1,10 +1,19 @@
-# Sublime Terminal
+# Terminal package for Sublime Text
 
 Shortcuts and menu entries for opening a terminal at the current file, or any directory in [Sublime Text](http://sublimetext.com/).
 
+Note that as of build 4213 Sublime Text itself has a `open_terminal` command. It has a `terminal_command` setting, and takes a `dir` argument. It can be used for instance in keybindings as follows, and might suit your needs as well as this package does:
+
+```json
+[
+  { "keys": ["super+ctrl+t"], "command": "open_terminal", "args": {"dir": "$file_path"} },
+  { "keys": ["super+ctrl+alt+t"], "command": "open_terminal", "args": {"dir": "$folder"} },
+]
+```
+
 ## Installation
 
-Download [Package Control](https://packagecontrol.io/) and use the *Package Control: Install Package* command from the command palette. Using Package Control ensures Terminal will stay up to date automatically.
+Download [Package Control](https://packages.sublimetext.com/) and use the *Package Control: Install Package* command from the command palette. Using Package Control ensures Terminal will stay up to date automatically.
 
 ## Usage
 
@@ -38,13 +47,24 @@ To create keyboard shortcuts, open the *Preferences > Package Settings > Termina
 
 ```json
 [
-  { "keys": ["super+shift+t"], "command": "open_terminal" },
-  { "keys": ["super+shift+alt+t"], "command": "open_terminal_project_folder" },
-  { "keys": ["super+\\"], "command": "switch_to_terminal" }
+  { "keys": ["ctrl+shift+t"], "command": "terminal_open" },
+  { "keys": ["ctrl+alt+t"], "command": "terminal_open_project_folder" },
+  { "keys": ["ctrl+shift+alt+t"], "command": "terminal_switch" }
 ]
 ```
 
+#### Terminal 2.0
+
 Note that in version 2 of this package, we stopped enabling these bindings by default. They conflicted with built-in bindings of Sublime Text, and users might have different preferences.
+
+#### Terminal 3.0
+
+In version 3 of this package the commands have been renamed, to avoid conflict with Sublime Text's new built-in `open_terminal` command (as of build 4213).
+
+- `open_terminal` to `terminal_open`
+- `open_terminal_project_folder` to `terminal_open_project_folder`
+- `switch_to_terminal` to `terminal_switch`
+
 
 ## Package Settings
 
@@ -66,14 +86,14 @@ The settings can be viewed and edited by accessing the *Preferences > Package Se
 
 ## Custom Parameters
 
-By passing parameters argument to the `open_terminal` or `open_terminal_project_folder` commands, it is possible to construct custom terminal environments. You can do so by creating custom [key bindings](https://www.sublimetext.com/docs/key_bindings.html) that call these commands with the arguments you want, as we'll document here, or by adding custom [command palette](https://docs.sublimetext.io/reference/command_palette.html) or [menu entries](https://docs.sublimetext.io/reference/menus.html). 
+By passing parameters argument to the `terminal_open` or `terminal_open_project_folder` commands, it is possible to construct custom terminal environments. You can do so by creating custom [key bindings](https://www.sublimetext.com/docs/key_bindings.html) that call these commands with the arguments you want, as we'll document here, or by adding custom [command palette](https://docs.sublimetext.io/reference/command_palette.html) or [menu entries](https://docs.sublimetext.io/reference/menus.html).
 
 The following is an example, of passing the parameters `-T 'Custom Window Title'`` to an XFCE terminal.
 
 ```json
 {
  "keys": ["ctrl+alt+t"],
- "command": "open_terminal",
+ "command": "terminal_open",
  "args": {
    "parameters": ["-T", "Custom Window Title"]
  }
@@ -85,7 +105,7 @@ A parameter may also contain the *%CWD%* placeholder, which will be substituted 
 ```json
 {
  "keys": ["ctrl+alt+t"],
- "command": "open_terminal",
+ "command": "terminal_open",
  "args": {
    "parameters": ["-T", "Working in directory %CWD%"]
  }

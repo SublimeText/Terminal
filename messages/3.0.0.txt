@@ -1,0 +1,8 @@
+Terminal 3.0
+
+Updates command names to be compatible with Sublime Text >= 4213.
+If you have custom menus or keybindings, update them as follows:
+
+- open_terminal                -> terminal_open
+- open_terminal_project_folder -> terminal_open_project_folder
+- switch_to_terminal           -> terminal_switch

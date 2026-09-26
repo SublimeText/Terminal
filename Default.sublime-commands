@@ -20,20 +20,20 @@
         "caption": "Preferences: Terminal Key Bindings",
         "command": "edit_settings",
         "args": {
-            "base_file": "${packages}/Terminal/Default ($platform).sublime-keymap",
+            "base_file": "${packages}/Terminal/Example.sublime-keymap",
             "default": "[\n\t$0\n]\n"
         }
     },
     {
         "caption": "Terminal: Open",
-        "command": "open_terminal"
+        "command": "terminal_open"
     },
     {
         "caption": "Terminal: Open in project folder",
-        "command": "open_terminal_project_folder"
+        "command": "terminal_open_project_folder"
     },
     {
         "caption": "Terminal: Switch to terminal",
-        "command": "switch_to_terminal"
+        "command": "terminal_switch"
     }
 ]

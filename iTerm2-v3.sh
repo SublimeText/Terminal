@@ -6,6 +6,11 @@ if echo "$SHELL" | grep -E "/fish$" &> /dev/null; then
 fi
 VERSION=$(sw_vers -productVersion)
 OPEN_IN_TAB=0
+ITERM_APPLICATION="iTerm"
+
+if osascript -e 'id of application "iTerm2"' >/dev/null 2>&1; then
+	ITERM_APPLICATION="iTerm2"
+fi
 
 while [ "$1" != "" ]; do
 	PARAM="$1"
@@ -20,14 +25,14 @@ done
 
 RUNNING=$(osascript<<END
 tell application "System Events"
-	count(processes whose name is "iTerm2")
+	count(processes whose name is "$ITERM_APPLICATION")
 end tell
 END
 )
 
 if (( $RUNNING == 0 )); then
 	osascript<<END
-	tell application "iTerm"
+	tell application "$ITERM_APPLICATION"
 		tell current window
             activate
 			tell current session
@@ -37,7 +42,7 @@ if (( $RUNNING == 0 )); then
 	end tell
 END
 osascript<<END
-	tell application "iTerm"
+	tell application "$ITERM_APPLICATION"
 		tell current window
             activate
 			tell current session
@@ -49,7 +54,7 @@ END
 else
 	if (( $OPEN_IN_TAB )); then
 		osascript &>/dev/null <<EOF
-		tell application "iTerm"
+		tell application "$ITERM_APPLICATION"
 			if (count of windows) = 0 then
 				set theWindow to (create window with default profile)
 				set theSession to current session of theWindow
@@ -68,7 +73,7 @@ else
 EOF
 	else
 		osascript &>/dev/null <<EOF
-		tell application "iTerm"
+		tell application "$ITERM_APPLICATION"
 			tell (create window with default profile)
 				tell the current session
 					write text "$CD_CMD"

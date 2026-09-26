@@ -20,7 +20,7 @@
         "caption": "Preferences: Terminal Key Bindings",
         "command": "edit_settings",
         "args": {
-            "base_file": "${packages}/Terminal/Default ($platform).sublime-keymap",
+            "base_file": "${packages}/Terminal/Example.sublime-keymap",
             "default": "[\n\t$0\n]\n"
         }
     },
